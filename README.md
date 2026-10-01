@@ -1,4 +1,4 @@
-# PortalPlus Helper
+# PortalPlus Helper PROOF OF CONECEPT
 
 A small browser helper for the forms on [PortalPlus](https://portal.portalplus.bayern), the practice-firm portal used in the *Übungsunternehmen* subject at Bavarian business schools. It saves typing in two ways:
 
