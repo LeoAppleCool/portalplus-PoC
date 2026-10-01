@@ -87,7 +87,7 @@ Then go to <http://localhost:8765/tests/mock-portal.html>. The replica loads the
 
 ## Responsible use
 
-Use the helper only where it is allowed. The portal also runs exams; don’t use it there unless your teacher says so.
+Use the helper only where it is allowed. The portal also runs exams; don’t use it there unless your teacher gives you explicit permission.
 
 ## Notes
 
