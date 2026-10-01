@@ -1,0 +1,9 @@
+services:
+  web:
+    image: nginx:alpine
+    container_name: portalplus-helfer
+    restart: unless-stopped
+    ports:
+      - "8095:80"
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
