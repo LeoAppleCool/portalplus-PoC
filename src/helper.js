@@ -1,18 +1,18 @@
-// PortalPlus-Helfer, Teil 1: Felder erkennen, Werte übernehmen, „Heute“-Buttons, Start.
-// scripts/build.mjs setzt diese Datei mit oberflaeche.js und helfer.css zu einem Skript zusammen (→ dist/).
+// PortalPlus Helper, part 1: field detection, copying between linked fields, “Today” buttons, start-up.
+// scripts/build.mjs combines this file with ui.js and helper.css into one script (→ dist/).
   if (window.__ppHelfer) { window.__ppHelfer.togglePanel(); return; }
 
-  const VERSION = '1.0';
-  const STORE_KEY = 'ppHelfer.v1';
+  const VERSION = '1.1';
+  const STORE_KEY = 'ppHelfer.v1'; // name kept from 1.0 so saved links survive updates
   const CSS = '@CSS@';
   const FIELD_SEL = 'input:not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]):not([type=checkbox])' +
     ':not([type=radio]):not([type=file]):not([type=image]):not([type=password]):not([type=range]):not([type=color]),textarea,select';
   window.__ppHelfer = { version: VERSION, togglePanel };
 
   const cfg = loadConfig();
-  const lastWritten = new WeakMap(); // Zielfeld → Wert, den der Helfer dort zuletzt eingetragen hat
-  const lastSeen = new WeakMap();    // Quellfeld → zuletzt bekannter Wert
-  const buttons = new Map();         // Datumsfeld → „Heute“-Button
+  const lastWritten = new WeakMap(); // target field → value the helper last wrote into it
+  const lastSeen = new WeakMap();    // source field → last known value
+  const buttons = new Map();         // date field → its “Today” button
   const origStyle = new WeakMap();
   const kindCache = new WeakMap();
   const tries = new WeakMap();
@@ -20,18 +20,18 @@
   let index = null, panel = null, pick = null, depth = 0;
   let scanTimer = 0, marksTimer = 0, toastTimer = 0;
 
-  // ---------- Einstellungen ----------
+  // ---------- Settings ----------
   function loadConfig() {
     const base = { dateButtons: true, links: [] };
     try {
       const s = JSON.parse(localStorage.getItem(STORE_KEY));
       if (s && typeof s.dateButtons === 'boolean') base.dateButtons = s.dateButtons;
       if (s && Array.isArray(s.links)) base.links = s.links.filter(validLink).map(copyLink);
-    } catch (e) { /* gesperrter oder kaputter Speicher → Standardwerte */ }
+    } catch (e) { /* storage blocked or corrupt → defaults */ }
     return base;
   }
   function saveConfig() {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(cfg)); } catch (e) { toast('Speichern fehlgeschlagen – der Browser blockiert den Speicher.'); }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(cfg)); } catch (e) { toast('Saving failed – the browser blocks storage.'); }
   }
   function validRef(r) {
     return !!r && typeof r.scope === 'string' && typeof r.own === 'string' && Number.isInteger(r.idx) && r.idx >= 0 && typeof r.label === 'string';
@@ -42,7 +42,7 @@
   function sameRef(a, b) { return a.scope === b.scope && a.own === b.own && a.idx === b.idx; }
   function hasLink(l) { return cfg.links.some(x => sameRef(x.from, l.from) && sameRef(x.to, l.to)); }
 
-  // ---------- Kleinkram ----------
+  // ---------- Small utilities ----------
   function pad(n) { return String(n).padStart(2, '0'); }
   function clean(s) { return (s || '').replace(/\s+/g, ' ').replace(/[\s:*]+$/, '').trim(); }
   function words(s) { return (s || '').replace(/([a-zäöü])([A-ZÄÖÜ])/g, '$1 $2').replace(/[_\-[\].]+/g, ' '); }
@@ -66,20 +66,20 @@
     return clean(c.textContent);
   }
 
-  // ---------- Feldbeschriftung & Datumserkennung ----------
+  // ---------- Field labels & date detection ----------
   function labelOf(el, strict) {
     if (el.labels && el.labels.length) { const t = textOf(el.labels[0]); if (t) return t; }
     const aria = el.getAttribute('aria-label');
     if (aria) return clean(aria);
     let node = el;
-    for (let i = 0; i < 4; i++) {        // nächste Umgebung, die nur dieses eine Feld enthält
+    for (let i = 0; i < 4; i++) {        // nearest surrounding element that contains only this one field
       node = node.parentElement;
       if (!node || node === document.body || node.querySelectorAll(FIELD_SEL).length > 1) break;
       const t = textOf(node.querySelector('label, .col-form-label, .form-label, legend') || node);
       if (t.length <= 60 && /[a-zäöüß]{2}/i.test(t)) return t;
     }
     const cell = el.closest('td');
-    if (cell) {                          // Tabellen: Spaltenüberschrift, sonst Zelle links daneben
+    if (cell) {                          // tables: column header, otherwise the cell to the left
       const table = cell.closest('table');
       const row = table && table.tHead && table.tHead.rows[0];
       const th = row && row.cells[cell.cellIndex];
@@ -89,7 +89,7 @@
     }
     if (strict) return '';
     const id = el.getAttribute('id');
-    return clean(el.getAttribute('placeholder') || origTitle(el) || el.getAttribute('name') || (stableId(id) ? id : '')) || 'Feld';
+    return clean(el.getAttribute('placeholder') || origTitle(el) || el.getAttribute('name') || (stableId(id) ? id : '')) || 'Field';
   }
   function dateKind(el) {
     if (el.tagName !== 'INPUT' || el.disabled) return null;
@@ -102,6 +102,7 @@
     if (el.readOnly && !picker) return null;
     const hay = words([el.getAttribute('name'), el.getAttribute('id'), el.className, labelOf(el, true)].join(' '));
     const ph = el.getAttribute('placeholder') || '';
+    // The portal is German: “Datum” = date, “Termin” = appointment/deadline, “Uhrzeit” = time of day, “TT.MM.” = DD.MM.
     const isDate = picker || /datum|\bdate\b|datepicker|termin(?!al)/i.test(hay) || /(tt|dd)\.mm\./i.test(ph) ||
       /^\d{1,2}\.\d{1,2}\.\d{2,4}$|^\d{4}-\d{2}-\d{2}$/.test(el.value.trim());
     const isTime = /uhrzeit|\btime\b/i.test(hay) || /^hh:mm$/i.test(ph);
@@ -116,7 +117,7 @@
     return kind;
   }
 
-  // ---------- „Heute“ eintragen ----------
+  // ---------- Filling in “today” ----------
   function nowValue(el, kind) {
     const d = new Date();
     const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -126,7 +127,7 @@
     if (el.type === 'datetime-local') return iso + 'T' + time;
     if (el.type === 'time' || kind === 'time') return time;
     const hint = (el.value || el.getAttribute('placeholder') || '').trim();
-    let date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`;
+    let date = `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${d.getFullYear()}`; // German default: DD.MM.YYYY
     if (/^(\d{4}|jjjj|yyyy)-/i.test(hint)) date = iso;
     else if (/^(\d{1,2}|tt|dd)\.(\d{1,2}|mm)\.(\d{2}|jj|yy)(\s|$)/i.test(hint)) date = date.slice(0, 6) + date.slice(8);
     return kind === 'datetime' ? date + ' ' + time : date;
@@ -141,21 +142,22 @@
     const $ = window.jQuery;
     if (kind === 'date' && $ && $.datepicker && el.classList.contains('hasDatepicker')) {
       try {
-        $(el).datepicker('setDate', new Date()); // Datumsformat der Seite verwenden
+        $(el).datepicker('setDate', new Date()); // use the page's own date format
         fire(el, 'input');
-        $.datepicker._selectDate(el);            // wie ein Klick im Kalender: onSelect bzw. change der Seite
+        $.datepicker._selectDate(el);            // like a click in the calendar: runs the page's onSelect or change
         flash(el);
         return;
-      } catch (e) { /* weiter mit dem normalen Weg */ }
+      } catch (e) { /* fall back to the normal way below */ }
     }
     setValue(el, nowValue(el, kind), true);
     flash(el);
   }
 
-  // ---------- Felder übernehmen ----------
+  // ---------- Copying between linked fields ----------
   function isBlank(t) {
     if (t.tagName !== 'SELECT') return t.value === '';
     const o = t.options[t.selectedIndex];
+    // “bitte wählen” = German “please choose” placeholder option
     return !o || o.value === '' || (t.selectedIndex === 0 && /bitte|w[äa]hlen|^[\s\-–]*$/i.test(o.text));
   }
   function optionFor(sel, value, text) {
@@ -173,7 +175,7 @@
     let v = raw, m;
     if (t.type === 'date' && (m = v.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/))) v = `${m[3]}-${pad(m[2])}-${pad(m[1])}`;
     else if (src.type === 'date' && t.type !== 'date' && (m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/))) v = `${m[3]}.${m[2]}.${m[1]}`;
-    else if (t.type === 'number' && /^-?[\d.]*,\d+$/.test(v)) v = v.replace(/\./g, '').replace(',', '.');
+    else if (t.type === 'number' && /^-?[\d.]*,\d+$/.test(v)) v = v.replace(/\./g, '').replace(',', '.'); // 1.234,50 → 1234.50
     return t.maxLength > 0 ? v.slice(0, t.maxLength) : v;
   }
   function targetsOf(src) {
@@ -199,7 +201,7 @@
         const cur = t.value;
         const was = lastWritten.has(t) ? lastWritten.get(t) : prev === undefined ? undefined : convert(src, t, prev);
         if (cur === v) { lastWritten.set(t, cur); if (commit) fire(t, 'change'); continue; }
-        if (!isBlank(t) && cur !== was) continue; // Zielfeld hat einen eigenen Wert → nicht überschreiben
+        if (!isBlank(t) && cur !== was) continue; // target has its own value → don't overwrite it
         setValue(t, v, commit);
         lastWritten.set(t, t.value);
         flash(t);
@@ -207,7 +209,7 @@
     } finally { depth--; }
     scheduleMarks();
   }
-  function poll() {                      // fängt Änderungen ohne Event ab (z. B. Datepicker mit eigenem onSelect)
+  function poll() {                      // catches changes that fire no event (e.g. a date picker with its own onSelect)
     for (const l of cfg.links) {
       const s = resolve(l.from);
       if (!s) continue;
@@ -217,7 +219,7 @@
   }
   function resync(s, t) {
     const v = convert(s, t, s.value);
-    if (v === null) return toast('Der Wert passt nicht in das Zielfeld.');
+    if (v === null) return toast('The value doesn’t fit the target field.');
     setValue(t, v, true);
     lastWritten.set(t, t.value);
     flash(t);
@@ -231,7 +233,7 @@
     if (marked.has(el)) scheduleMarks();
   }
 
-  // ---------- Felder wiederfinden (auch nachdem das Portal ein Formular neu geladen hat) ----------
+  // ---------- Finding fields again (also after the portal has reloaded a form) ----------
   function fieldKey(el) {
     const name = el.getAttribute('name'), id = el.getAttribute('id');
     const own = el.tagName.toLowerCase() + '|' + (name ? 'n:' + name : stableId(id) ? 'i:' + id : 'l:' + labelOf(el));
@@ -266,7 +268,7 @@
     return el || null;
   }
 
-  // ---------- Markierung der Zielfelder ----------
+  // ---------- Marking target fields ----------
   function scheduleMarks() { clearTimeout(marksTimer); marksTimer = setTimeout(refreshMarks, 60); }
   function refreshMarks() {
     const state = new Map();
@@ -284,8 +286,8 @@
       t.classList.toggle('pph-linked', st.ok);
       t.classList.toggle('pph-detached', !st.ok);
       t.setAttribute('title', st.ok
-        ? `Wird automatisch aus »${st.from}« übernommen.`
-        : `Hat einen eigenen Wert und wird nicht mehr aus »${st.from}« überschrieben. Feld leeren = wieder koppeln.`);
+        ? `Copied automatically from “${st.from}”.`
+        : `Has its own value and is no longer overwritten from “${st.from}”. Clear the field to re-link it.`);
       marked.add(t);
     }
   }
@@ -297,20 +299,20 @@
     marked.delete(el);
   }
 
-  // ---------- „Heute“-Buttons ----------
+  // ---------- “Today” buttons ----------
   function decorate(el, kind) {
     const inGroup = el.parentElement.classList.contains('input-group');
     const compact = !inGroup && el.offsetWidth < 150;
-    const text = compact ? (kind === 'date' ? '📅' : '🕒') : kind === 'date' ? 'Heute' : 'Jetzt';
+    const text = compact ? (kind === 'date' ? '📅' : '🕒') : kind === 'date' ? 'Today' : 'Now';
     const b = h('span', {
       class: 'pph-ui ' + (inGroup ? 'pph-today-group btn btn-outline-secondary' : 'pph-today' + (compact ? ' pph-compact' : '')),
       role: 'button',
-      title: kind === 'time' ? 'Aktuelle Uhrzeit eintragen' : kind === 'datetime' ? 'Datum und Uhrzeit von jetzt eintragen' : 'Heutiges Datum eintragen',
+      title: kind === 'time' ? 'Insert the current time' : kind === 'datetime' ? 'Insert the current date and time' : 'Insert today’s date',
       onmousedown: e => e.preventDefault(),
       onclick: e => { e.preventDefault(); e.stopPropagation(); fillNow(el, kind); },
     }, text);
     if (!inGroup) {
-      if (getComputedStyle(el).display === 'block') { // Feld etwas schmaler machen, damit der Button daneben passt
+      if (getComputedStyle(el).display === 'block') { // make the field a little narrower so the button fits next to it
         origStyle.set(el, [el.style.display, el.style.width, el.style.verticalAlign]);
         const fills = el.offsetWidth >= contentWidth(el.parentElement) - 2;
         el.style.display = 'inline-block';
@@ -337,10 +339,10 @@
   function scan() {
     for (const [el, b] of buttons) {
       if (!cfg.dateButtons || !el.isConnected) undecorate(el);
-      else if (!b.isConnected) { undecorate(el); tries.set(el, (tries.get(el) || 0) + 1); } // Portal hat den Button entfernt
+      else if (!b.isConnected) { undecorate(el); tries.set(el, (tries.get(el) || 0) + 1); } // the portal removed the button
     }
     const live = new Set(buttons.values());
-    document.querySelectorAll('.pph-today, .pph-today-group').forEach(b => live.has(b) || b.remove()); // z. B. mitkopierte Zeilen
+    document.querySelectorAll('.pph-today, .pph-today-group').forEach(b => live.has(b) || b.remove()); // e.g. rows the portal copied
     document.querySelectorAll('.pph-linked, .pph-detached').forEach(el => marked.has(el) || unmark(el));
     if (cfg.dateButtons) {
       for (const el of document.querySelectorAll('input')) {
@@ -352,12 +354,12 @@
     refreshMarks();
   }
 
-  // ---------- Start ----------
+  // ---------- Start-up ----------
   function init() {
     document.head.append(h('style', { id: 'pph-style' }, CSS));
-    document.body.append(h('button', { type: 'button', class: 'pph-ui pph-fab', title: 'PortalPlus-Helfer', onclick: togglePanel }, 'Helfer'));
+    document.body.append(h('button', { type: 'button', class: 'pph-ui pph-fab', title: 'PortalPlus Helper', onclick: togglePanel }, 'Helper'));
     for (const type of ['input', 'change', 'focusin']) document.addEventListener(type, onEvent, true);
-    // Per jQuery .trigger() ausgelöste Events (z. B. vom Datepicker) erreichen addEventListener nicht
+    // Events fired with jQuery’s .trigger() (e.g. by the date picker) never reach addEventListener
     if (window.jQuery) window.jQuery(document).on('input.pph change.pph', e => { if (e.isTrigger) onEvent(e); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && panel && !pick) closePanel(); });
     new MutationObserver(() => { index = null; scheduleScan(); }).observe(document.body, { childList: true, subtree: true });

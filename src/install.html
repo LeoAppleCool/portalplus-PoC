@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PortalPlus-Helfer installieren</title>
+<title>Install PortalPlus Helper</title>
 <style>
   :root { --bg:#f5f6f8; --card:#fff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb; --accent:#1d4ed8; --soft:#eff6ff; --code:#f9fafb; }
   @media (prefers-color-scheme: dark) {
@@ -28,44 +28,44 @@
 </head>
 <body>
 <main>
-  <h1>PortalPlus-Helfer</h1>
-  <p class="lead">„Heute“-Buttons an Datumsfeldern und automatisches Übernehmen von Feldinhalten für portal.portalplus.bayern · Version {{VERSION}}</p>
+  <h1>PortalPlus Helper</h1>
+  <p class="lead">“Today” buttons for date fields and automatic copying between linked fields on portal.portalplus.bayern · Version {{VERSION}}</p>
 
   <section class="card">
-    <h2>An Schul-PCs: als Lesezeichen</h2>
+    <h2>On school PCs: as a bookmark</h2>
     <ol>
-      <li>Lesezeichenleiste einblenden: <kbd>Strg</kbd> + <kbd>Umschalt</kbd> + <kbd>B</kbd></li>
-      <li>Diesen Button mit der Maus in die Lesezeichenleiste ziehen:
-        <a class="bm" href="{{BOOKMARKLET}}" onclick="event.preventDefault(); alert('Nicht anklicken, sondern in die Lesezeichenleiste ziehen.')">PP-Helfer</a></li>
-      <li>Im Portal einloggen, dann einmal auf das Lesezeichen klicken. Nach dem Neuladen der Seite (<kbd>F5</kbd>) wieder einmal klicken.</li>
+      <li>Show the bookmarks bar: <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>B</kbd></li>
+      <li>Drag this button onto the bookmarks bar:
+        <a class="bm" href="{{BOOKMARKLET}}" onclick="event.preventDefault(); alert('Don’t click it – drag it onto the bookmarks bar.')">PP Helper</a></li>
+      <li>Log in to the portal, then click the bookmark once. After reloading the page (<kbd>F5</kbd>), click it once more.</li>
     </ol>
-    <p class="muted">Ziehen klappt nicht? Neues Lesezeichen anlegen, Name „PP-Helfer“, und als URL diesen Code einfügen:</p>
+    <p class="muted">Dragging doesn’t work? Create a new bookmark named “PP Helper” and paste this code as its URL:</p>
     <textarea id="bmCode" readonly>{{BOOKMARKLET}}</textarea>
-    <button data-copy="bmCode">Code kopieren</button>
+    <button data-copy="bmCode">Copy code</button>
   </section>
 
   <section class="card">
-    <h2>Am eigenen PC: automatisch mit Tampermonkey</h2>
+    <h2>On your own PC: automatically with Tampermonkey</h2>
     <ol>
-      <li>Die Browser-Erweiterung <b>Tampermonkey</b> installieren (gibt es für Chrome, Edge und Firefox).</li>
-      <li>Nur Chrome/Edge: Rechtsklick auf das Tampermonkey-Symbol → „Erweiterung verwalten“ → den Schalter „Nutzerskripts zulassen“ (engl. „Allow User Scripts“) einschalten.</li>
-      <li>Tampermonkey-Symbol → „Neues Skript erstellen“ → alles im Editor löschen → das Skript unten einfügen → <kbd>Strg</kbd> + <kbd>S</kbd>.</li>
+      <li>Install the <b>Tampermonkey</b> browser extension (available for Chrome, Edge and Firefox).</li>
+      <li>Chrome/Edge only: right-click the Tampermonkey icon → “Manage extension” → turn on “Allow User Scripts”.</li>
+      <li>Tampermonkey icon → “Create a new script” → delete everything in the editor → paste the script below → <kbd>Ctrl</kbd> + <kbd>S</kbd>.</li>
     </ol>
     <textarea id="usCode" readonly>{{USERSCRIPT}}</textarea>
-    <button data-copy="usCode">Skript kopieren</button>
+    <button data-copy="usCode">Copy script</button>
   </section>
 
   <section class="card">
-    <h2>So benutzt du ihn</h2>
+    <h2>How to use it</h2>
     <ul>
-      <li><b>Heute / Jetzt</b>: Neben Datums- und Uhrzeitfeldern erscheint ein Button. Ein Klick trägt das heutige Datum bzw. die aktuelle Uhrzeit ein.</li>
-      <li><b>Felder verknüpfen</b>: Unten rechts auf „Helfer“ → „+ Felder verknüpfen“ → erst das Feld anklicken, <i>aus dem</i> übernommen wird, dann das Zielfeld. Was du ab jetzt ins erste Feld schreibst, steht automatisch auch im zweiten.</li>
-      <li>Das Zielfeld kannst du trotzdem selbst ändern: Dein Wert bleibt dann stehen (orange Markierung). Leerst du es, wird es wieder automatisch gefüllt (blaue Markierung).</li>
-      <li>Verknüpfungen werden im jeweiligen Browser gespeichert. Mit „Export“ bekommst du einen Code, den du am anderen PC im Helfer unter „Import“ einfügst.</li>
+      <li><b>Today / Now</b>: A button appears next to date and time fields. One click fills in today’s date or the current time.</li>
+      <li><b>Link fields</b>: Click “Helper” in the bottom right → “+ Link fields” → first click the field to copy <i>from</i>, then the target field. From then on, whatever you type into the first field also appears in the second.</li>
+      <li>You can still change the target field yourself: your value then stays (orange marker). If you clear it, it is filled automatically again (blue marker).</li>
+      <li>Links are saved per browser. “Export” gives you a code that you paste under “Import” in the helper on another PC.</li>
     </ul>
   </section>
 
-  <p class="note">Hinweis: In Prüfungen im Portal nur verwenden, wenn die Lehrkraft es erlaubt.</p>
+  <p class="note">Note: Only use it during exams in the portal if your teacher allows it.</p>
 </main>
 <script>
   document.querySelectorAll('[data-copy]').forEach(btn => {
@@ -74,7 +74,7 @@
       const ta = document.getElementById(btn.dataset.copy);
       ta.select();
       try { await navigator.clipboard.writeText(ta.value); } catch (e) { document.execCommand('copy'); }
-      btn.textContent = 'Kopiert ✓';
+      btn.textContent = 'Copied ✓';
       setTimeout(() => { btn.textContent = label; }, 1500);
     });
   });

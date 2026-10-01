@@ -2,8 +2,8 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>Nachbau PortalPlus (Test)</title>
-<!-- dieselben Bibliotheken wie portal.portalplus.bayern -->
+<title>PortalPlus replica (test)</title>
+<!-- same libraries as portal.portalplus.bayern -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
 <link href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN" crossorigin="anonymous"></script>
@@ -12,13 +12,14 @@
 </head>
 <body class="text-center">
 <nav class="p-2 border-bottom text-start">
-  <button class="btn btn-sm btn-outline-primary" id="navInvoice" onclick="loadTpl('rechnung')">Rechnung</button>
-  <button class="btn btn-sm btn-outline-primary" id="navFibu" onclick="loadTpl('fibu')">Buchung</button>
-  <button class="btn btn-sm btn-outline-secondary" onclick="$('#content').empty()">Leeren</button>
+  <button class="btn btn-sm btn-outline-primary" id="navInvoice" onclick="loadTpl('invoice')">Invoice</button>
+  <button class="btn btn-sm btn-outline-primary" id="navBooking" onclick="loadTpl('booking')">Booking</button>
+  <button class="btn btn-sm btn-outline-secondary" onclick="$('#content').empty()">Clear</button>
 </nav>
 <div id="content" class="container text-start py-3"></div>
 
 <script>
+  // The form labels below stay German on purpose: they mirror the portal and exercise the helper’s German label detection.
   window.appLog = [];
   $.datepicker.setDefaults({
     dateFormat: 'dd.mm.yy', firstDay: 1,
@@ -30,7 +31,7 @@
     `<div class="row mb-2"><label class="col-sm-3 col-form-label">${label}</label><div class="col-sm-9">${field}</div></div>`;
 
   const TPL = {
-    rechnung: `<form id="formInvoice">
+    invoice: `<form id="formInvoice">
       <h5>Rechnung erstellen</h5>
       ${row('Rechnungsdatum', '<input class="form-control datepicker" name="invoiceDate">')}
       ${row('Lieferdatum', '<input class="form-control datepicker" name="deliveryDate">')}
@@ -46,7 +47,7 @@
       ${row('Dateiname', '<input class="form-control" name="fileName">')}
       <button type="button" class="btn btn-primary" name="save">Speichern</button>
     </form>`,
-    fibu: `<div id="fibu">
+    booking: `<div id="fibu">
       <h5>Buchungssatz</h5>
       <table class="table table-sm align-middle" style="table-layout:fixed">
         <thead><tr><th style="width:14%">Belegdatum</th><th style="width:14%">Buchungsdatum</th><th>Soll</th><th>Haben</th><th>Betrag Soll</th><th>Betrag Haben</th><th style="width:26%">Buchungstext</th></tr></thead>
@@ -63,7 +64,7 @@
     </div>`
   };
 
-  // wie _getData() im Portal: HTML per AJAX holen und mit $(...).html() einsetzen, danach Datepicker initialisieren
+  // Like _getData() in the portal: fetch HTML via AJAX, insert it with $(...).html(), then set up the date pickers
   function loadTpl(name) {
     setTimeout(() => {
       $('#content').html(TPL[name]);

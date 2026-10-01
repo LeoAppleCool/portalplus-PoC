@@ -1,4 +1,4 @@
-/* PortalPlus-Helfer: Styles (werden von scripts/build.mjs ins Skript eingebaut) */
+/* PortalPlus Helper: styles (inlined into the script by scripts/build.mjs) */
 .pph-linked:not(:focus){box-shadow:inset 3px 0 0 #2563eb!important}
 .pph-detached:not(:focus){box-shadow:inset 3px 0 0 #d97706!important}
 .pph-flash{animation:pph-flash .8s ease-out}
